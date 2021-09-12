@@ -66,9 +66,32 @@ namespace Kubernetes.FileSystem.Controllers
             _clusters.Add(new Cluster { Name = name });
             var json = JsonConvert.SerializeObject(_clusters);
             var configPath = Path.Combine(Program.ConfigDir, _configName);
-            System.IO.File.WriteAllText(configPath, json);
+            await System.IO.File.WriteAllTextAsync(configPath, json);
 
             return Ok();
+        }
+
+        [HttpDelete]
+        public async Task<IActionResult> Delete([FromQuery] string name)
+        {
+            name = name.ToLower();
+            var cluster = _clusters.SingleOrDefault(n => n.Name == name);
+
+            if (cluster == null)
+            {
+                return BadRequest(new { Message = "Cluster is not existed!" });
+            }
+
+            _clusters.Remove(cluster);
+
+            var certificatePath = Path.Combine(Program.ConfigDir, name);
+            System.IO.File.Delete(certificatePath);
+
+            var configPath = Path.Combine(Program.ConfigDir, _configName);
+            var json = JsonConvert.SerializeObject(_clusters);
+            await System.IO.File.WriteAllTextAsync(configPath, json);
+            
+            return NoContent();
         }
     }
     public class Cluster

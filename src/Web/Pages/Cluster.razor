@@ -1,0 +1,140 @@
+﻿@page "/"
+@page "/clusters"
+@inject HttpClient Http
+
+<h1>Clusters</h1>
+
+@if (_showAlert)
+{
+    <div class="alert alert-danger alert-dismissible fade show" role="alert">
+        @_alertMessage
+        <button type="button" class="close">&times;</button>
+    </div>
+}
+
+@if (_clusters == null)
+{
+    <p><em>Loading...</em></p>
+}
+else
+{
+    <div style="margin:20px 0; text-align: right;">
+        <button type="button" class="btn btn-success btn-sm" @onclick="@OnCreate"><span class="oi oi-plus"></span> Create</button>
+    </div>
+    <table class="table">
+    <thead>
+        <tr>
+            <th>Name</th>
+            <th>Certificate</th>
+            <th>Operation</th>
+        </tr>
+    </thead>
+    <tbody>
+        @foreach (var cluster in _clusters)
+            {
+                <tr>
+                    <td>@cluster.Name</td>
+                    <td>@("/root/k8s-config/" + cluster.Name)</td>
+                    <td>
+                        <button type="button" class="btn btn-outline-primary btn-sm" @onclick="() => OnEdit(cluster)"><span class="oi oi-pencil"></span> Edit</button>
+                        <button type="button" class="btn btn-outline-danger btn-sm" @onclick="() => OnDelete(cluster)"><span class="oi oi-trash"></span> Delete</button>
+                    </td>
+                </tr>
+            }
+        </tbody>
+    </table>
+    @if (_showDialog)
+    {
+    <div class="modal fade show" style="display:block; background-color: rgba(10,10,10,.8);" aria-modal="true" role="dialog">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h4 class="modal-title">@_dialogTitle</h4>
+                    <button type="button" class="close" @onclick="@CloseDialog">&times;</button>
+                </div>
+                <div class="modal-body">
+                    <p>This is the message text.</p>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-primary" @onclick="@CloseDialog">OK</button>
+                </div>
+            </div>
+        </div>
+    </div>
+    }
+
+    @if (_showConfirm)
+    {
+    <div class="modal fade show" style="display:block; background-color: rgba(10,10,10,.8);" role="dialog">
+        <div class="modal-dialog modal-dialog-centered" role="document">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">Confirm Delete</h5>
+                    <button type="button" class="close" @onclick="() => ConfirmDelete(false)">&times;</button>
+                </div>
+                <div class="modal-body">
+                    Are you sure to delete?
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" @onclick="() => ConfirmDelete(false)">Cancel</button>
+                    <button type="button" class="btn btn-danger" @onclick="() => ConfirmDelete(true)">Delete</button>
+                </div>
+            </div>
+        </div>
+    </div>
+    }
+}
+
+@code {
+    private List<ClusterItem> _clusters;
+    private bool _showDialog = false;
+    private string _dialogTitle = "";
+    private bool _showConfirm = false;
+    private bool _showAlert = false;
+    private string _alertMessage = "";
+    private ClusterItem _cluster;
+
+    protected override async Task OnInitializedAsync()
+    {
+        _clusters = await Http.GetFromJsonAsync<List<ClusterItem>>("api/clusters");
+    }
+
+    protected void OnCreate() {
+        _showDialog = true;
+        _dialogTitle = "Create Cluster";
+    }
+
+    protected void OnEdit(ClusterItem cluster) {
+        _showDialog = true;
+        _dialogTitle = "Edit Cluster";
+    }
+
+    protected void OnDelete(ClusterItem cluster) {
+        _showConfirm = true;
+        _cluster = cluster;
+    }
+
+    protected async Task ConfirmDelete(bool confirm) {
+        _showConfirm = false;
+        if (confirm) {
+            var result = await Http.DeleteAsync($"api/clusters?name={_cluster.Name}");
+            if (!result.IsSuccessStatusCode){
+                _showAlert = true;
+                _alertMessage = await result.Content.ReadAsStringAsync();
+            }
+            else 
+            {
+                _clusters = await Http.GetFromJsonAsync<List<ClusterItem>>("api/clusters");
+            }
+        }
+    }
+
+    protected void CloseDialog() {
+        _showDialog = false;
+    }
+
+    public class ClusterItem
+    {
+        public string Name { get; set; }
+    }
+}
