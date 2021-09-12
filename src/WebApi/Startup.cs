@@ -37,6 +37,11 @@ namespace WebApi
                 app.UseSwaggerUI(c => c.SwaggerEndpoint("/swagger/v1/swagger.json", "WebApi v1"));
             }
 
+            // If no need to use Web UI, Please remove the Microsoft.AspNetCore.Components.WebAssembly.Server and Web project
+            // And also remove the two lines below
+            app.UseBlazorFrameworkFiles();
+            app.UseStaticFiles();
+
             app.UseRouting();
 
             app.UseAuthorization();
@@ -44,6 +49,7 @@ namespace WebApi
             app.UseEndpoints(endpoints =>
             {
                 endpoints.MapControllers();
+                endpoints.MapFallbackToFile("index.html"); // Please remove this line if you don't need to use the Web UI
             });
         }
     }
