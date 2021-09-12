@@ -1,10 +1,138 @@
 ﻿@page "/files"
 @inject HttpClient Http
 
-<h1>Weather forecast</h1>
+<h1>Files</h1>
 
-<p>This component demonstrates fetching data from the server.</p>
+<div class="clearfix">
+    <div style="margin-right:20px; float:left;">
+        <span>Cluster:</span>
+        <select class="form-select" @onchange="ClusterSelectionChanged">
+            <option value="" selected>Please select...</option>
+            @foreach (var cluster in _clusters)
+            {
+                <option value="@cluster.Name">@cluster.Name</option>
+            }
+        </select>
+    </div>
+    <div style="margin-right:20px; float:left;">
+        @if (_showNamespace)
+        {
+            <span>Namespace:</span>
+            <select class="form-select" @onchange="NamespaceSelectionChanged">
+            <option value="" selected>Please select...</option>
+            @foreach (var item in _namespaces)
+                {
+                    <option value="@item">@item</option>
+                }
+            </select>
+        }
+    </div>
+    <div style="margin-right:20px; float:left;">
+        @if (_showPod)
+        {
+            <span>Pods:</span>
+            <select class="form-select" @onchange="PodSelectionChanged">
+            <option value="" selected>Please select...</option>
+            @foreach (var pod in _pods)
+                {
+                    <option value="@pod">@pod</option>
+                }
+            </select>
+        }
+    </div>
+    <div style="margin-right:20px; float:left;">
+        @if (_showContainer)
+        {
+            <span>Containers:</span>
+            <select class="form-select">
+            <option value="" selected>Please select...</option>
+            @foreach (var container in _containers)
+                {
+                    <option value="@container">@container</option>
+                }
+            </select>
+        }
+    </div>
+</div>
 
 @code {
+    private List<ClusterItem> _clusters = new List<ClusterItem>();
+    private string _cluster;
 
+    private bool _showNamespace = false;
+    private List<string> _namespaces = new List<string>();
+    private string _namespace;
+
+    private bool _showPod = false;
+    private List<string> _pods = new List<string>();
+    private string _pod;
+
+    private bool _showContainer = false;
+    private List<string> _containers = new List<string>();
+    private string _container;
+
+    protected override async Task OnInitializedAsync()
+    {
+        _clusters = await Http.GetFromJsonAsync<List<ClusterItem>>("api/clusters");
+    }
+
+    protected async Task ClusterSelectionChanged(ChangeEventArgs e)
+    {
+        _showNamespace = false;
+        _namespace = "";
+        _namespaces = new List<string>();
+
+        _showPod = false;
+        _pod = "";
+        _pods = new List<string>();
+        
+        _showContainer = false;
+        _container = "";
+        _containers = new List<string>();
+        
+        _cluster = e.Value.ToString();
+        if (!string.IsNullOrWhiteSpace(_cluster))
+        {
+            _namespaces = await Http.GetFromJsonAsync<List<string>>($"api/namespaces?cluster={_cluster}");
+            _showNamespace = true;
+        }
+    }
+
+    protected async Task NamespaceSelectionChanged(ChangeEventArgs e)
+    {
+        _showPod = false;
+        _pod = "";
+        _pods = new List<string>();
+        
+        _showContainer = false;
+        _container = "";
+        _containers = new List<string>();
+
+        _namespace = e.Value.ToString();
+        if (!string.IsNullOrWhiteSpace(_namespace))
+        {
+            _pods = await Http.GetFromJsonAsync<List<string>>($"api/pods?cluster={_cluster}&namespace={_namespace}");
+            _showPod = true;
+        }
+    }
+
+    protected async Task PodSelectionChanged(ChangeEventArgs e)
+    {
+        _showContainer = false;
+        _container = "";
+        _containers = new List<string>();
+
+        _pod = e.Value.ToString();
+        if (!string.IsNullOrWhiteSpace(_pod))
+        {
+            _containers = await
+            Http.GetFromJsonAsync<List<string>>($"api/containers?cluster={_cluster}&namespace={_namespace}&pod={_pod}");
+            _showContainer = true;
+        }
+    }
+
+    public class ClusterItem
+    {
+        public string Name { get; set; }
+    }
 }
