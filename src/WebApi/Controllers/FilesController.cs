@@ -1,8 +1,11 @@
 using k8s;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
+using System;
+using System.Collections.Generic;
 using System.Diagnostics;
 using System.IO;
+using System.Linq;
 using System.Threading.Tasks;
 using WebApi;
 
@@ -24,15 +27,18 @@ namespace Kubernetes.FileSystem.Controllers
             var config = KubernetesClientConfiguration.BuildConfigFromConfigFile(configPath);
             var client = new k8s.Kubernetes(config);
 
-            var webSocket = await client.WebSocketNamespacedPodExecAsync(pod, @namespace, new string[] { "ls", "/" }, container).ConfigureAwait(false);
+            var webSocket = await client.WebSocketNamespacedPodExecAsync(pod, @namespace, new string[] { "ls", "-Alh", "--time-style", "long-iso", "/" }, container).ConfigureAwait(false);
             var demux = new StreamDemuxer(webSocket);
             demux.Start();
 
             var buff = new byte[4096];
             var stream = demux.GetStream(1, 1);
             var read = stream.Read(buff, 0, 4096);
-            var text = System.Text.Encoding.Default.GetString(buff).Trim();
-            return Ok(text);
+            var bytes = TrimEnd(buff);
+            var text = System.Text.Encoding.Default.GetString(bytes).Trim();
+
+            var files = ToFiles(text);
+            return Ok(files);
         }
 
         [HttpPost("upload")]
@@ -50,7 +56,7 @@ namespace Kubernetes.FileSystem.Controllers
                 await file.CopyToAsync(stream);
             }
 
-            var path  = Path.Combine(dir, file.FileName);
+            var path = Path.Combine(dir, file.FileName);
             var command = $"kubectl cp {tmpPath} {pod}:{path} -c {container} -n {@namespace} --kubeconfig {configPath}";
             var (code, message) = ExecuteCommand(command);
 
@@ -87,5 +93,63 @@ namespace Kubernetes.FileSystem.Controllers
 
             return (process.ExitCode, message);
         }
+
+        private static byte[] TrimEnd(byte[] array)
+        {
+            int lastIndex = Array.FindLastIndex(array, b => b != 0);
+
+            Array.Resize(ref array, lastIndex + 1);
+
+            return array;
+        }
+
+        private static List<FileItem> ToFiles(string text)
+        {
+            var files = new List<FileItem>();
+
+            var lines = text.Split(Environment.NewLine);
+
+            foreach (var line in lines)
+            {
+                if (line.StartsWith("total"))
+                {
+                    continue;
+                }
+                var trimLine = line.Trim();
+                var array = trimLine.Split(" ").ToList().Where(n => !string.IsNullOrWhiteSpace(n)).ToList();
+
+                var file = new FileItem
+                {
+                    Permission = array[0],
+                    Links = array[1],
+                    Owner = array[2],
+                    Group = array[3],
+                    Size = array[4],
+                    Date = array[5],
+                    Time = array[6],
+                    Name = array[7]
+                };
+
+                if (file.Permission.StartsWith("l"))
+                {
+                    file.Name = $"{array[7]} {array[8]} {array[9]}";
+                }
+                files.Add(file);
+            }
+
+            return files;
+        }
+    }
+
+    public class FileItem
+    {
+        public string Permission { get; set; }
+        public string Links { get; set; }
+        public string Owner { get; set; }
+        public string Group { get; set; }
+        public string Size { get; set; }
+        public string Date { get; set; }
+        public string Time { get; set; }
+        public string Name { get; set; }
     }
 }

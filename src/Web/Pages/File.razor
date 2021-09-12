@@ -3,7 +3,7 @@
 
 <h1>Files</h1>
 
-<div class="clearfix">
+<div class="clearfix" style="margin-bottom:20px;">
     <div style="margin-right:20px; float:left;">
         <span>Cluster:</span>
         <select class="form-select" @onchange="ClusterSelectionChanged">
@@ -44,7 +44,7 @@
         @if (_showContainer)
         {
             <span>Containers:</span>
-            <select class="form-select">
+            <select class="form-select" @onchange="ContainerSelectionChanged">
             <option value="" selected>Please select...</option>
             @foreach (var container in _containers)
                 {
@@ -54,6 +54,34 @@
         }
     </div>
 </div>
+
+    <table class="table">
+    <thead>
+        <tr>
+            <th>Permission</th>
+            <th>Links</th>
+            <th>Owner</th>
+            <th>Group</th>
+            <th>Size</th>
+            <th>Time</th>
+            <th>Name</th>
+        </tr>
+    </thead>
+    <tbody>
+        @foreach (var file in _files)
+            {
+                <tr>
+                    <td>@file.Permission</td>
+                    <td>@file.Links</td>
+                    <td>@file.Owner</td>
+                    <td>@file.Group</td>
+                    <td>@file.Size</td>
+                    <td>@(file.Date + " " + file.Time)</td>
+                    <td>@file.Name</td>
+                </tr>
+            }
+        </tbody>
+    </table>
 
 @code {
     private List<ClusterItem> _clusters = new List<ClusterItem>();
@@ -70,6 +98,8 @@
     private bool _showContainer = false;
     private List<string> _containers = new List<string>();
     private string _container;
+
+    private List<FileItem> _files = new List<FileItem>();
 
     protected override async Task OnInitializedAsync()
     {
@@ -131,8 +161,30 @@
         }
     }
 
+    protected async Task ContainerSelectionChanged(ChangeEventArgs e)
+    {
+        _container = e.Value.ToString();
+        if (!string.IsNullOrWhiteSpace(_container))
+        {
+            _files = await
+            Http.GetFromJsonAsync<List<FileItem>>($"api/files?cluster={_cluster}&namespace={_namespace}&pod={_pod}&container={_container}");
+        }
+    }
+
     public class ClusterItem
     {
+        public string Name { get; set; }
+    }
+
+    public class FileItem
+    {
+        public string Permission { get; set; }
+        public string Links { get; set; }
+        public string Owner { get; set; }
+        public string Group { get; set; }
+        public string Size { get; set; }
+        public string Date { get; set; }
+        public string Time { get; set; }
         public string Name { get; set; }
     }
 }
