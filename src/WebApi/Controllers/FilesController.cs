@@ -16,7 +16,7 @@ namespace Kubernetes.FileSystem.Controllers
     public class FilesController : ControllerBase
     {
         [HttpGet]
-        public async Task<IActionResult> List([FromQuery] string cluster, [FromQuery] string @namespace, [FromQuery] string pod, [FromQuery] string container)
+        public async Task<IActionResult> List([FromQuery] string cluster, [FromQuery] string @namespace, [FromQuery] string pod, [FromQuery] string container, [FromQuery] string dir)
         {
             var configPath = Path.Combine(Program.ConfigDir, cluster.ToLower());
             if (!System.IO.File.Exists(configPath))
@@ -27,7 +27,7 @@ namespace Kubernetes.FileSystem.Controllers
             var config = KubernetesClientConfiguration.BuildConfigFromConfigFile(configPath);
             var client = new k8s.Kubernetes(config);
 
-            var webSocket = await client.WebSocketNamespacedPodExecAsync(pod, @namespace, new string[] { "ls", "-Alh", "--time-style", "long-iso", "/" }, container).ConfigureAwait(false);
+            var webSocket = await client.WebSocketNamespacedPodExecAsync(pod, @namespace, new string[] { "ls", "-Alh", "--time-style", "long-iso", dir }, container).ConfigureAwait(false);
             var demux = new StreamDemuxer(webSocket);
             demux.Start();
 

@@ -55,6 +55,19 @@
     </div>
 </div>
 
+<div class="clearfix" style="margin-bottom:20px;">
+    <span style="margin-right:20px;">Path: @_dir</span>
+</div>
+
+<div class="clearfix" style="margin-bottom:20px;">
+    <div style="margin-right:20px; float:left;">
+        <button type="button" class="btn btn-outline-success btn-sm" @onclick="Up"><span class="oi oi-folder"></span> Back</button> 
+    </div>
+    <div style="margin-right:20px; float:left;">
+        <button type="button" class="btn btn-outline-primary btn-sm"><span class="oi oi-data-transfer-upload"></span> Upload</button>
+    </div>
+</div>
+
     <table class="table">
     <thead>
         <tr>
@@ -65,6 +78,7 @@
             <th>Size</th>
             <th>Time</th>
             <th>Name</th>
+            <th>Operation</th>
         </tr>
     </thead>
     <tbody>
@@ -78,12 +92,24 @@
                     <td>@file.Size</td>
                     <td>@(file.Date + " " + file.Time)</td>
                     <td>@file.Name</td>
+                    <td>
+                        @if (file.Permission.StartsWith("-"))
+                        {
+                            <button type="button" class="btn btn-outline-primary btn-sm"><span class="oi oi-data-transfer-download"></span> Download</button>
+                        }
+                        else if (file.Permission.StartsWith("d"))
+                        {
+                            <button type="button" class="btn btn-outline-success btn-sm" @onclick="() => Enter(file)"><span class="oi oi-folder"></span> Open</button>
+                        }
+                    </td>
                 </tr>
             }
         </tbody>
     </table>
 
 @code {
+    private string _dir = "/";
+
     private List<ClusterItem> _clusters = new List<ClusterItem>();
     private string _cluster;
 
@@ -119,6 +145,9 @@
         _showContainer = false;
         _container = "";
         _containers = new List<string>();
+
+        _dir = "/";
+        _files = new List<FileItem>();
         
         _cluster = e.Value.ToString();
         if (!string.IsNullOrWhiteSpace(_cluster))
@@ -138,6 +167,9 @@
         _container = "";
         _containers = new List<string>();
 
+        _dir = "/";
+        _files = new List<FileItem>();
+
         _namespace = e.Value.ToString();
         if (!string.IsNullOrWhiteSpace(_namespace))
         {
@@ -152,6 +184,9 @@
         _container = "";
         _containers = new List<string>();
 
+        _dir = "/";
+        _files = new List<FileItem>();
+
         _pod = e.Value.ToString();
         if (!string.IsNullOrWhiteSpace(_pod))
         {
@@ -163,14 +198,34 @@
 
     protected async Task ContainerSelectionChanged(ChangeEventArgs e)
     {
+        _dir = "/";
+        _files = new List<FileItem>();
+
         _container = e.Value.ToString();
         if (!string.IsNullOrWhiteSpace(_container))
         {
             _files = await
-            Http.GetFromJsonAsync<List<FileItem>>($"api/files?cluster={_cluster}&namespace={_namespace}&pod={_pod}&container={_container}");
+            Http.GetFromJsonAsync<List<FileItem>>($"api/files?cluster={_cluster}&namespace={_namespace}&pod={_pod}&container={_container}&dir={_dir}");
         }
     }
 
+    protected async Task Enter(FileItem file)
+    {
+        _dir = System.IO.Path.Combine(_dir, file.Name);
+        _files = await
+            Http.GetFromJsonAsync<List<FileItem>>($"api/files?cluster={_cluster}&namespace={_namespace}&pod={_pod}&container={_container}&dir={_dir}");
+    }
+
+    protected async Task Up()
+    {
+        if (_dir != "/")
+        {
+            _dir = _dir.TrimEnd('/');
+            _dir = _dir.Substring(0, _dir.LastIndexOf("/") + 1);
+            _files = await
+            Http.GetFromJsonAsync<List<FileItem>>($"api/files?cluster={_cluster}&namespace={_namespace}&pod={_pod}&container={_container}&dir={_dir}");
+        }
+    }
     public class ClusterItem
     {
         public string Name { get; set; }
