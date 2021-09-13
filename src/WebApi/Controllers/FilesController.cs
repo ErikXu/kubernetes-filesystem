@@ -1,6 +1,7 @@
 using k8s;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.StaticFiles;
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;
@@ -70,6 +71,38 @@ namespace Kubernetes.FileSystem.Controllers
             return StatusCode(StatusCodes.Status500InternalServerError, new { Message = message });
         }
 
+        [HttpGet("download")]
+        public async Task<IActionResult> DownloadFile([FromQuery] string cluster, [FromQuery] string @namespace, [FromQuery] string pod, [FromQuery] string container, [FromQuery] string path)
+        {
+            var configPath = Path.Combine(Program.ConfigDir, cluster.ToLower());
+            if (!System.IO.File.Exists(configPath))
+            {
+                return BadRequest(new { Message = "Cluster is not existed!" });
+            }
+
+            var tmpPath = Path.Combine("/tmp", System.Guid.NewGuid().ToString());
+            var command = $"kubectl cp {pod}:{path} {tmpPath} -c {container} -n {@namespace} --kubeconfig {configPath}";
+            var (code, message) = ExecuteCommand(command);
+
+            if (code != 0)
+            {
+                return StatusCode(StatusCodes.Status500InternalServerError, new { Message = message });
+            }
+
+            var memory = new MemoryStream();
+            using (var stream = new FileStream(tmpPath, FileMode.Open))
+            {
+                await stream.CopyToAsync(memory);
+            }
+            memory.Position = 0;
+
+            var contentType = GetContentType(tmpPath);
+
+            System.IO.File.Delete(tmpPath);
+
+            return File(memory, contentType);
+        }
+
         private static (int, string) ExecuteCommand(string command)
         {
             var escapedArgs = command.Replace("\"", "\\\"");
@@ -89,7 +122,7 @@ namespace Kubernetes.FileSystem.Controllers
             process.Start();
             process.WaitForExit();
 
-            var message = process.StandardOutput.ReadToEnd();
+            var message = process.StandardError.ReadToEnd();
 
             return (process.ExitCode, message);
         }
@@ -138,6 +171,19 @@ namespace Kubernetes.FileSystem.Controllers
             }
 
             return files;
+        }
+
+        private string GetContentType(string path)
+        {
+            var provider = new FileExtensionContentTypeProvider();
+            string contentType;
+
+            if (!provider.TryGetContentType(path, out contentType))
+            {
+                contentType = "application/octet-stream";
+            }
+
+            return contentType;
         }
     }
 

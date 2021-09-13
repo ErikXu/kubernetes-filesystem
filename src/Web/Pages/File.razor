@@ -95,7 +95,7 @@
                     <td>
                         @if (file.Permission.StartsWith("-"))
                         {
-                            <button type="button" class="btn btn-outline-primary btn-sm"><span class="oi oi-data-transfer-download"></span> Download</button>
+                            <a href="@DownloadUrl(file)" download="@file.Name" target="=_blank"><button type="button" class="btn btn-outline-primary btn-sm"><span class="oi oi-data-transfer-download"></span> Download</button></a>
                         }
                         else if (file.Permission.StartsWith("d"))
                         {
@@ -226,6 +226,14 @@
             Http.GetFromJsonAsync<List<FileItem>>($"api/files?cluster={_cluster}&namespace={_namespace}&pod={_pod}&container={_container}&dir={_dir}");
         }
     }
+
+    protected string DownloadUrl(FileItem file)
+    {
+        var path = System.IO.Path.Combine(_dir, file.Name);
+        return $"api/files/download?cluster={_cluster}&namespace={_namespace}&pod={_pod}&container={_container}&path={path}";
+    }
+
+
     public class ClusterItem
     {
         public string Name { get; set; }
