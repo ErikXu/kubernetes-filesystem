@@ -6,7 +6,7 @@ using WebApi;
 
 namespace Kubernetes.FileSystem.Controllers
 {
-    [Route("api/[controller]")]
+    [Route("api/pods")]
     [ApiController]
     public class PodsController : ControllerBase
     {

@@ -10,7 +10,7 @@ using WebApi;
 
 namespace Kubernetes.FileSystem.Controllers
 {
-    [Route("api/[controller]")]
+    [Route("api/clusters")]
     [ApiController]
     public class ClustersController : ControllerBase
     {
@@ -48,22 +48,37 @@ namespace Kubernetes.FileSystem.Controllers
             return Ok(_clusters);
         }
 
-        [HttpPost]
-        public async Task<IActionResult> Create([FromQuery] string name, IFormFile file)
+        [HttpGet("{id}")]
+        public async Task<IActionResult> Get(string id)
         {
-            name = name.ToLower();
-            if (_clusters.Any(n => n.Name.Equals(name)))
+            var cluster = _clusters.SingleOrDefault(n=>n.Id == id);
+            if (cluster == null)
             {
-                return BadRequest(new { Message = "Cluster is existed!" });
+                return BadRequest(new { Message = "Cluster is not existed!" });
             }
 
-            var certificatePath = Path.Combine(Program.ConfigDir, name);
-            await using (var stream = System.IO.File.Create(certificatePath))
+            var certificatePath = Path.Combine(Program.ConfigDir, cluster.Name);
+            var certificate = await System.IO.File.ReadAllTextAsync(certificatePath);
+            cluster.Certificate = certificate;
+
+            return Ok(cluster);
+        }
+
+        [HttpPost]
+        public async Task<IActionResult> Create([FromBody] Cluster cluster)
+        {
+            cluster.Name = cluster.Name.ToLower();
+            if (_clusters.Any(n => n.Name.Equals(cluster.Name)))
             {
-                await file.CopyToAsync(stream);
+                return BadRequest(new { Message = "Cluster name is existed!" });
             }
 
-            _clusters.Add(new Cluster { Name = name });
+            var certificatePath = Path.Combine(Program.ConfigDir, cluster.Name);
+            await System.IO.File.WriteAllTextAsync(certificatePath, cluster.Certificate);
+
+            cluster.Id = Guid.NewGuid().ToString();
+            cluster.Certificate = string.Empty;
+            _clusters.Add(cluster);
             var json = JsonConvert.SerializeObject(_clusters);
             var configPath = Path.Combine(Program.ConfigDir, _configName);
             await System.IO.File.WriteAllTextAsync(configPath, json);
@@ -71,12 +86,33 @@ namespace Kubernetes.FileSystem.Controllers
             return Ok();
         }
 
-        [HttpDelete]
-        public async Task<IActionResult> Delete([FromQuery] string name)
+        [HttpPut("{id}")]
+        public async Task<IActionResult> Update(string id, [FromBody] Cluster form)
         {
-            name = name.ToLower();
-            var cluster = _clusters.SingleOrDefault(n => n.Name == name);
+            var cluster = _clusters.SingleOrDefault(n=>n.Id == id);
+            if (cluster == null)
+            {
+                return BadRequest(new { Message = "Cluster is not existed!" });
+            }
 
+            var certificatePath = Path.Combine(Program.ConfigDir, cluster.Name);
+            System.IO.File.Delete(certificatePath);
+
+            cluster.Name = form.Name;
+            certificatePath = Path.Combine(Program.ConfigDir, form.Name);
+            await System.IO.File.WriteAllTextAsync(certificatePath, form.Certificate);
+
+            var json = JsonConvert.SerializeObject(_clusters);
+            var configPath = Path.Combine(Program.ConfigDir, _configName);
+            await System.IO.File.WriteAllTextAsync(configPath, json);
+
+            return Ok();
+        }
+
+        [HttpDelete("{id}")]
+        public async Task<IActionResult> Delete(string id)
+        {
+            var cluster = _clusters.SingleOrDefault(n=>n.Id == id);
             if (cluster == null)
             {
                 return BadRequest(new { Message = "Cluster is not existed!" });
@@ -84,18 +120,22 @@ namespace Kubernetes.FileSystem.Controllers
 
             _clusters.Remove(cluster);
 
-            var certificatePath = Path.Combine(Program.ConfigDir, name);
+            var certificatePath = Path.Combine(Program.ConfigDir, cluster.Name);
             System.IO.File.Delete(certificatePath);
 
             var configPath = Path.Combine(Program.ConfigDir, _configName);
             var json = JsonConvert.SerializeObject(_clusters);
             await System.IO.File.WriteAllTextAsync(configPath, json);
-            
+
             return NoContent();
         }
     }
     public class Cluster
     {
+        public string Id { get; set; }
+
         public string Name { get; set; }
+
+        public string Certificate { get; set; }
     }
 }

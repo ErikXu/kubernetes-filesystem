@@ -24,6 +24,7 @@ else
     <table class="table">
     <thead>
         <tr>
+            <th>Id</th>
             <th>Name</th>
             <th>Certificate</th>
             <th>Operation</th>
@@ -33,6 +34,7 @@ else
         @foreach (var cluster in _clusters)
             {
                 <tr>
+                    <td>@cluster.Id</td>
                     <td>@cluster.Name</td>
                     <td>@("/root/k8s-config/" + cluster.Name)</td>
                     <td>
@@ -53,10 +55,21 @@ else
                     <button type="button" class="close" @onclick="@CloseDialog">&times;</button>
                 </div>
                 <div class="modal-body">
-                    <p>This is the message text.</p>
+    				<EditForm Model="@_cluster">
+    				  <div class="form-group">
+    				    <label for="name">Name</label>
+                        <input class="form-control" type="text" id="name" @bind-value="_cluster.Name" @bind-value:event="oninput" />
+    				  </div>
+    				  <div class="form-group">
+    				    <label for="certificate">Certificate</label>
+                        <textarea class="form-control" id="certificate" rows="10" aria-describedby="certificateHelp" @bind-value="_cluster.Certificate" @bind-value:event="oninput"></textarea>
+                        <small id="certificateHelp" class="form-text text-muted">Use your kubeconfig here.</small>
+    				  </div>
+    				</EditForm>
                 </div>
                 <div class="modal-footer">
-                    <button type="button" class="btn btn-primary" @onclick="@CloseDialog">OK</button>
+                    <button type="button" class="btn btn-secondary" @onclick="@CloseDialog">Close</button>
+                    <button type="button" class="btn btn-primary" @onclick="@Save">Save</button>
                 </div>
             </div>
         </div>
@@ -92,7 +105,8 @@ else
     private bool _showConfirm = false;
     private bool _showAlert = false;
     private string _alertMessage = "";
-    private ClusterItem _cluster;
+    private ClusterItem _cluster = new ClusterItem();
+    private bool _isEdit = false;
 
     protected override async Task OnInitializedAsync()
     {
@@ -102,11 +116,15 @@ else
     protected void OnCreate() {
         _showDialog = true;
         _dialogTitle = "Create Cluster";
+        _isEdit = false;
+        _cluster = new ClusterItem();
     }
 
-    protected void OnEdit(ClusterItem cluster) {
+    protected async Task OnEdit(ClusterItem cluster) {
         _showDialog = true;
         _dialogTitle = "Edit Cluster";
+        _isEdit = true;
+        _cluster = await Http.GetFromJsonAsync<ClusterItem>($"api/clusters/{cluster.Id}");
     }
 
     protected void OnDelete(ClusterItem cluster) {
@@ -117,7 +135,7 @@ else
     protected async Task ConfirmDelete(bool confirm) {
         _showConfirm = false;
         if (confirm) {
-            var result = await Http.DeleteAsync($"api/clusters?name={_cluster.Name}");
+            var result = await Http.DeleteAsync($"api/clusters/{_cluster.Id}");
             if (!result.IsSuccessStatusCode){
                 _showAlert = true;
                 _alertMessage = await result.Content.ReadAsStringAsync();
@@ -129,12 +147,37 @@ else
         }
     }
 
+    protected async Task Save()
+    {
+        HttpResponseMessage result;
+
+        if (!_isEdit)
+        {
+            result = await Http.PostAsJsonAsync("api/clusters", _cluster);
+        }
+        else 
+        {
+            result = await Http.PutAsJsonAsync($"api/clusters/{_cluster.Id}", _cluster);
+        }
+
+        if (result.IsSuccessStatusCode)
+        {
+            _clusters = await Http.GetFromJsonAsync<List<ClusterItem>>("api/clusters");
+        }
+
+        _showDialog = false;
+    }
+
     protected void CloseDialog() {
         _showDialog = false;
     }
 
     public class ClusterItem
     {
+        public string Id { get; set; }
+
         public string Name { get; set; }
+
+        public string Certificate { get; set; }
     }
 }

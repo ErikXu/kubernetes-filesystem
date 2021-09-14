@@ -6,7 +6,7 @@ using WebApi;
 
 namespace Kubernetes.FileSystem.Controllers
 {
-    [Route("api/[controller]")]
+    [Route("api/namespaces")]
     [ApiController]
     public class NamespacesController : ControllerBase
     {

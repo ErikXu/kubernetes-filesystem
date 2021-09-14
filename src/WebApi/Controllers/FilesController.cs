@@ -12,7 +12,7 @@ using WebApi;
 
 namespace Kubernetes.FileSystem.Controllers
 {
-    [Route("api/[controller]")]
+    [Route("api/files")]
     [ApiController]
     public class FilesController : ControllerBase
     {
