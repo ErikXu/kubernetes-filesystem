@@ -60,12 +60,15 @@
 </div>
 
 <div class="clearfix" style="margin-bottom:20px;">
-    <div style="margin-right:20px; float:left;">
+    <div style="margin-right:10px; float:left;">
         <button type="button" class="btn btn-outline-success btn-sm" @onclick="Back"><span class="oi oi-folder"></span> Back</button> 
     </div>
-    <div style="margin-right:20px; float:left;">
+    <div style="margin-right:10px; float:left;">
         <InputFile id="file-upload" OnChange="@Upload" style="display: none;"/>
         <label for="file-upload" type="button" class="btn btn-outline-primary btn-sm"><span class="oi oi-data-transfer-upload"></span> Upload</label>
+    </div>
+    <div style="margin-right:10px; float:left;">
+        <button type="button" class="btn btn-outline-info btn-sm" @onclick="Refresh"><span class="oi oi-reload"></span> Refresh</button> 
     </div>
 </div>
 
@@ -226,6 +229,12 @@
             _files = await
             Http.GetFromJsonAsync<List<FileItem>>($"api/files?cluster={_cluster}&namespace={_namespace}&pod={_pod}&container={_container}&dir={_dir}");
         }
+    }
+
+    protected async Task Refresh()
+    {
+        _files = await
+           Http.GetFromJsonAsync<List<FileItem>>($"api/files?cluster={_cluster}&namespace={_namespace}&pod={_pod}&container={_container}&dir={_dir}");
     }
 
     protected string DownloadUrl(FileItem file)
