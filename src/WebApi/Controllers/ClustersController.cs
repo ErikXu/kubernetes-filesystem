@@ -29,7 +29,8 @@ namespace Kubernetes.FileSystem.Controllers
             var configPath = Path.Combine(Program.ConfigDir, _configName);
             if (!System.IO.File.Exists(configPath))
             {
-                System.IO.File.Create(configPath);
+                var json = JsonConvert.SerializeObject(_clusters);
+                System.IO.File.WriteAllText(configPath, json);
             }
             else
             {
