@@ -61,10 +61,11 @@
 
 <div class="clearfix" style="margin-bottom:20px;">
     <div style="margin-right:20px; float:left;">
-        <button type="button" class="btn btn-outline-success btn-sm" @onclick="Up"><span class="oi oi-folder"></span> Back</button> 
+        <button type="button" class="btn btn-outline-success btn-sm" @onclick="Back"><span class="oi oi-folder"></span> Back</button> 
     </div>
     <div style="margin-right:20px; float:left;">
-        <button type="button" class="btn btn-outline-primary btn-sm"><span class="oi oi-data-transfer-upload"></span> Upload</button>
+        <InputFile id="file-upload" OnChange="@Upload" style="display: none;"/>
+        <label for="file-upload" type="button" class="btn btn-outline-primary btn-sm"><span class="oi oi-data-transfer-upload"></span> Upload</label>
     </div>
 </div>
 
@@ -95,11 +96,11 @@
                     <td>
                         @if (file.Permission.StartsWith("-"))
                         {
-                            <a href="@DownloadUrl(file)" download="@file.Name" target="=_blank"><button type="button" class="btn btn-outline-primary btn-sm"><span class="oi oi-data-transfer-download"></span> Download</button></a>
+                            <a href="@DownloadUrl(file)" class="btn btn-outline-primary btn-sm" download="@file.Name" target="=_blank" role="button"><span class="oi oi-data-transfer-download"></span> Download</a>
                         }
                         else if (file.Permission.StartsWith("d"))
                         {
-                            <button type="button" class="btn btn-outline-success btn-sm" @onclick="() => Enter(file)"><span class="oi oi-folder"></span> Open</button>
+                            <button type="button" class="btn btn-outline-success btn-sm" @onclick="() => Open(file)"><span class="oi oi-folder"></span> Open</button>
                         }
                     </td>
                 </tr>
@@ -209,14 +210,14 @@
         }
     }
 
-    protected async Task Enter(FileItem file)
+    protected async Task Open(FileItem file)
     {
         _dir = System.IO.Path.Combine(_dir, file.Name);
         _files = await
             Http.GetFromJsonAsync<List<FileItem>>($"api/files?cluster={_cluster}&namespace={_namespace}&pod={_pod}&container={_container}&dir={_dir}");
     }
 
-    protected async Task Up()
+    protected async Task Back()
     {
         if (_dir != "/")
         {
@@ -231,6 +232,22 @@
     {
         var path = System.IO.Path.Combine(_dir, file.Name);
         return $"api/files/download?cluster={_cluster}&namespace={_namespace}&pod={_pod}&container={_container}&path={path}";
+    }
+
+    // https://docs.microsoft.com/en-us/aspnet/core/blazor/file-uploads?view=aspnetcore-5.0&pivots=server
+    protected async Task Upload(InputFileChangeEventArgs e) 
+    {
+        var file = e.File;
+        using var content = new MultipartFormDataContent();
+        var fileContent = new StreamContent(file.OpenReadStream());
+        content.Add(content: fileContent, name: "\"file\"", fileName: file.Name);
+        var result = await Http.PostAsync($"api/files/upload?cluster={_cluster}&namespace={_namespace}&pod={_pod}&container={_container}&dir={_dir}", content);
+
+        if (result.IsSuccessStatusCode)
+        {
+            _files = await
+            Http.GetFromJsonAsync<List<FileItem>>($"api/files?cluster={_cluster}&namespace={_namespace}&pod={_pod}&container={_container}&dir={_dir}");
+        }
     }
 
 
