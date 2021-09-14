@@ -49,3 +49,12 @@ or
 ```bash
 bash run.sh
 ```
+
+## How to Develop
+
+```bash
+git clone https://github.com/ErikXu/kubernetes-filesystem.git
+cd kubernetes-filesystem/src/WebApi
+dotnet restore
+dotnet run
+```
