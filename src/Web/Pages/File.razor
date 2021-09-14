@@ -55,6 +55,8 @@
     </div>
 </div>
 
+@if (_showButtons)
+{
 <div class="clearfix" style="margin-bottom:20px;">
     <span style="margin-right:20px;">Path: @_dir</span>
 </div>
@@ -71,6 +73,7 @@
         <button type="button" class="btn btn-outline-info btn-sm" @onclick="Refresh"><span class="oi oi-reload"></span> Refresh</button> 
     </div>
 </div>
+}
 
     <table class="table">
     <thead>
@@ -131,6 +134,8 @@
 
     private List<FileItem> _files = new List<FileItem>();
 
+    private bool _showButtons = false;
+
     protected override async Task OnInitializedAsync()
     {
         _clusters = await Http.GetFromJsonAsync<List<ClusterItem>>("api/clusters");
@@ -152,6 +157,8 @@
 
         _dir = "/";
         _files = new List<FileItem>();
+
+        _showButtons = false;
         
         _cluster = e.Value.ToString();
         if (!string.IsNullOrWhiteSpace(_cluster))
@@ -174,6 +181,8 @@
         _dir = "/";
         _files = new List<FileItem>();
 
+        _showButtons = false;
+
         _namespace = e.Value.ToString();
         if (!string.IsNullOrWhiteSpace(_namespace))
         {
@@ -191,6 +200,8 @@
         _dir = "/";
         _files = new List<FileItem>();
 
+        _showButtons = false;
+
         _pod = e.Value.ToString();
         if (!string.IsNullOrWhiteSpace(_pod))
         {
@@ -204,12 +215,16 @@
     {
         _dir = "/";
         _files = new List<FileItem>();
+        
+        _showButtons = false;
 
         _container = e.Value.ToString();
         if (!string.IsNullOrWhiteSpace(_container))
         {
             _files = await
             Http.GetFromJsonAsync<List<FileItem>>($"api/files?cluster={_cluster}&namespace={_namespace}&pod={_pod}&container={_container}&dir={_dir}");
+            
+            _showButtons = true;
         }
     }
 
