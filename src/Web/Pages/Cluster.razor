@@ -22,16 +22,16 @@ else
         <button type="button" class="btn btn-success btn-sm" @onclick="@OnCreate"><span class="oi oi-plus"></span> Create</button>
     </div>
     <table class="table">
-    <thead>
-        <tr>
-            <th>Id</th>
-            <th>Name</th>
-            <th>Certificate</th>
-            <th>Operation</th>
-        </tr>
-    </thead>
-    <tbody>
-        @foreach (var cluster in _clusters)
+        <thead>
+            <tr>
+                <th>Id</th>
+                <th>Name</th>
+                <th>Certificate</th>
+                <th>Operation</th>
+            </tr>
+        </thead>
+        <tbody>
+            @foreach (var cluster in _clusters)
             {
                 <tr>
                     <td>@cluster.Id</td>
@@ -47,54 +47,54 @@ else
     </table>
     @if (_showDialog)
     {
-    <div class="modal fade show" style="display:block; background-color: rgba(10,10,10,.8);" aria-modal="true" role="dialog">
-        <div class="modal-dialog modal-dialog-centered">
-            <div class="modal-content">
-                <div class="modal-header">
-                    <h4 class="modal-title">@_dialogTitle</h4>
-                    <button type="button" class="close" @onclick="@CloseDialog">&times;</button>
-                </div>
-                <div class="modal-body">
-    				<EditForm Model="@_cluster">
-    				  <div class="form-group">
-    				    <label for="name">Name</label>
-                        <input class="form-control" type="text" id="name" @bind-value="_cluster.Name" @bind-value:event="oninput" />
-    				  </div>
-    				  <div class="form-group">
-    				    <label for="certificate">Certificate</label>
-                        <textarea class="form-control" id="certificate" rows="10" aria-describedby="certificateHelp" @bind-value="_cluster.Certificate" @bind-value:event="oninput"></textarea>
-                        <small id="certificateHelp" class="form-text text-muted">Use your kubeconfig here.</small>
-    				  </div>
-    				</EditForm>
-                </div>
-                <div class="modal-footer">
-                    <button type="button" class="btn btn-secondary" @onclick="@CloseDialog">Close</button>
-                    <button type="button" class="btn btn-primary" @onclick="@Save">Save</button>
+        <div class="modal fade show" style="display:block; background-color: rgba(10,10,10,.8);" aria-modal="true" role="dialog">
+            <div class="modal-dialog modal-dialog-centered">
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <h4 class="modal-title">@_dialogTitle</h4>
+                        <button type="button" class="close" @onclick="@CloseDialog">&times;</button>
+                    </div>
+                    <div class="modal-body">
+                        <EditForm Model="@_cluster">
+                            <div class="form-group">
+                                <label for="name">Name</label>
+                                <input class="form-control" type="text" id="name" @bind-value="_cluster.Name" @bind-value:event="oninput" />
+                            </div>
+                            <div class="form-group">
+                                <label for="certificate">Certificate</label>
+                                <textarea class="form-control" id="certificate" rows="10" aria-describedby="certificateHelp" @bind-value="_cluster.Certificate" @bind-value:event="oninput"></textarea>
+                                <small id="certificateHelp" class="form-text text-muted">Use your kubeconfig here.</small>
+                            </div>
+                        </EditForm>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary" @onclick="@CloseDialog">Close</button>
+                        <button type="button" class="btn btn-primary" @onclick="@Save">Save</button>
+                    </div>
                 </div>
             </div>
         </div>
-    </div>
     }
 
     @if (_showConfirm)
     {
-    <div class="modal fade show" style="display:block; background-color: rgba(10,10,10,.8);" role="dialog">
-        <div class="modal-dialog modal-dialog-centered" role="document">
-            <div class="modal-content">
-                <div class="modal-header">
-                    <h5 class="modal-title">Confirm Delete</h5>
-                    <button type="button" class="close" @onclick="() => ConfirmDelete(false)">&times;</button>
-                </div>
-                <div class="modal-body">
-                    Are you sure to delete?
-                </div>
-                <div class="modal-footer">
-                    <button type="button" class="btn btn-secondary" @onclick="() => ConfirmDelete(false)">Cancel</button>
-                    <button type="button" class="btn btn-danger" @onclick="() => ConfirmDelete(true)">Delete</button>
+        <div class="modal fade show" style="display:block; background-color: rgba(10,10,10,.8);" role="dialog">
+            <div class="modal-dialog modal-dialog-centered" role="document">
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <h5 class="modal-title">Confirm Delete</h5>
+                        <button type="button" class="close" @onclick="() => ConfirmDelete(false)">&times;</button>
+                    </div>
+                    <div class="modal-body">
+                        Are you sure to delete?
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary" @onclick="() => ConfirmDelete(false)">Cancel</button>
+                        <button type="button" class="btn btn-danger" @onclick="() => ConfirmDelete(true)">Delete</button>
+                    </div>
                 </div>
             </div>
         </div>
-    </div>
     }
 }
 
@@ -113,34 +113,40 @@ else
         _clusters = await Http.GetFromJsonAsync<List<ClusterItem>>("api/clusters");
     }
 
-    protected void OnCreate() {
+    protected void OnCreate()
+    {
         _showDialog = true;
         _dialogTitle = "Create Cluster";
         _isEdit = false;
         _cluster = new ClusterItem();
     }
 
-    protected async Task OnEdit(ClusterItem cluster) {
+    protected async Task OnEdit(ClusterItem cluster)
+    {
         _showDialog = true;
         _dialogTitle = "Edit Cluster";
         _isEdit = true;
         _cluster = await Http.GetFromJsonAsync<ClusterItem>($"api/clusters/{cluster.Id}");
     }
 
-    protected void OnDelete(ClusterItem cluster) {
+    protected void OnDelete(ClusterItem cluster)
+    {
         _showConfirm = true;
         _cluster = cluster;
     }
 
-    protected async Task ConfirmDelete(bool confirm) {
+    protected async Task ConfirmDelete(bool confirm)
+    {
         _showConfirm = false;
-        if (confirm) {
+        if (confirm)
+        {
             var result = await Http.DeleteAsync($"api/clusters/{_cluster.Id}");
-            if (!result.IsSuccessStatusCode){
+            if (!result.IsSuccessStatusCode)
+            {
                 _showAlert = true;
                 _alertMessage = await result.Content.ReadAsStringAsync();
             }
-            else 
+            else
             {
                 _clusters = await Http.GetFromJsonAsync<List<ClusterItem>>("api/clusters");
             }
@@ -155,7 +161,7 @@ else
         {
             result = await Http.PostAsJsonAsync("api/clusters", _cluster);
         }
-        else 
+        else
         {
             result = await Http.PutAsJsonAsync($"api/clusters/{_cluster.Id}", _cluster);
         }
@@ -168,7 +174,8 @@ else
         _showDialog = false;
     }
 
-    protected void CloseDialog() {
+    protected void CloseDialog()
+    {
         _showDialog = false;
     }
 

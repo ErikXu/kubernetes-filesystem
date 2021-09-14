@@ -14,68 +14,71 @@
             }
         </select>
     </div>
-    <div style="margin-right:20px; float:left;">
-        @if (_showNamespace)
-        {
+
+    @if (_showNamespace)
+    {
+        <div style="margin-right:20px; float:left;">
             <span>Namespace:</span>
             <select class="form-select" @onchange="NamespaceSelectionChanged">
-            <option value="" selected>Please select...</option>
-            @foreach (var item in _namespaces)
+                <option value="" selected>Please select...</option>
+                @foreach (var item in _namespaces)
                 {
                     <option value="@item">@item</option>
                 }
             </select>
-        }
-    </div>
-    <div style="margin-right:20px; float:left;">
-        @if (_showPod)
-        {
+        </div>
+    }
+
+    @if (_showPod)
+    {
+        <div style="margin-right:20px; float:left;">
             <span>Pods:</span>
             <select class="form-select" @onchange="PodSelectionChanged">
-            <option value="" selected>Please select...</option>
-            @foreach (var pod in _pods)
+                <option value="" selected>Please select...</option>
+                @foreach (var pod in _pods)
                 {
                     <option value="@pod">@pod</option>
                 }
             </select>
-        }
-    </div>
-    <div style="margin-right:20px; float:left;">
-        @if (_showContainer)
-        {
+        </div>
+    }
+
+    @if (_showContainer)
+    {
+        <div style="margin-right:20px; float:left;">
             <span>Containers:</span>
             <select class="form-select" @onchange="ContainerSelectionChanged">
-            <option value="" selected>Please select...</option>
-            @foreach (var container in _containers)
+                <option value="" selected>Please select...</option>
+                @foreach (var container in _containers)
                 {
                     <option value="@container">@container</option>
                 }
             </select>
-        }
-    </div>
+        </div>
+    }
 </div>
 
 @if (_showButtons)
 {
-<div class="clearfix" style="margin-bottom:20px;">
-    <span style="margin-right:20px;">Path: @_dir</span>
-</div>
+    <div class="clearfix" style="margin-bottom:20px;">
+        <span style="margin-right:20px;">Path: @_dir</span>
+    </div>
 
-<div class="clearfix" style="margin-bottom:20px;">
-    <div style="margin-right:10px; float:left;">
-        <button type="button" class="btn btn-outline-success btn-sm" @onclick="Back"><span class="oi oi-folder"></span> Back</button> 
+    <div class="clearfix" style="margin-bottom:20px;">
+        <div style="margin-right:10px; float:left;">
+            <button type="button" class="btn btn-outline-success btn-sm" @onclick="Back"><span class="oi oi-folder"></span> Back</button>
+        </div>
+        <div style="margin-right:10px; float:left;">
+            <InputFile id="file-upload" OnChange="@Upload" style="display: none;" />
+            <label for="file-upload" type="button" class="btn btn-outline-primary btn-sm"><span class="oi oi-data-transfer-upload"></span> Upload</label>
+        </div>
+        <div style="margin-right:10px; float:left;">
+            <button type="button" class="btn btn-outline-info btn-sm" @onclick="Refresh"><span class="oi oi-reload"></span> Refresh</button>
+        </div>
     </div>
-    <div style="margin-right:10px; float:left;">
-        <InputFile id="file-upload" OnChange="@Upload" style="display: none;"/>
-        <label for="file-upload" type="button" class="btn btn-outline-primary btn-sm"><span class="oi oi-data-transfer-upload"></span> Upload</label>
-    </div>
-    <div style="margin-right:10px; float:left;">
-        <button type="button" class="btn btn-outline-info btn-sm" @onclick="Refresh"><span class="oi oi-reload"></span> Refresh</button> 
-    </div>
-</div>
 }
 
-    <table class="table">
+<table class="table">
     <thead>
         <tr>
             <th>Permission</th>
@@ -90,29 +93,29 @@
     </thead>
     <tbody>
         @foreach (var file in _files)
-            {
-                <tr>
-                    <td>@file.Permission</td>
-                    <td>@file.Links</td>
-                    <td>@file.Owner</td>
-                    <td>@file.Group</td>
-                    <td>@file.Size</td>
-                    <td>@(file.Date + " " + file.Time)</td>
-                    <td>@file.Name</td>
-                    <td>
-                        @if (file.Permission.StartsWith("-"))
-                        {
-                            <a href="@DownloadUrl(file)" class="btn btn-outline-primary btn-sm" download="@file.Name" target="=_blank" role="button"><span class="oi oi-data-transfer-download"></span> Download</a>
-                        }
-                        else if (file.Permission.StartsWith("d"))
-                        {
-                            <button type="button" class="btn btn-outline-success btn-sm" @onclick="() => Open(file)"><span class="oi oi-folder"></span> Open</button>
-                        }
-                    </td>
-                </tr>
-            }
-        </tbody>
-    </table>
+        {
+            <tr>
+                <td>@file.Permission</td>
+                <td>@file.Links</td>
+                <td>@file.Owner</td>
+                <td>@file.Group</td>
+                <td>@file.Size</td>
+                <td>@(file.Date + " " + file.Time)</td>
+                <td>@file.Name</td>
+                <td>
+                    @if (file.Permission.StartsWith("-"))
+                    {
+                        <a href="@DownloadUrl(file)" class="btn btn-outline-primary btn-sm" download="@file.Name" target="=_blank" role="button"><span class="oi oi-data-transfer-download"></span> Download</a>
+                    }
+                    else if (file.Permission.StartsWith("d"))
+                    {
+                        <button type="button" class="btn btn-outline-success btn-sm" @onclick="() => Open(file)"><span class="oi oi-folder"></span> Open</button>
+                    }
+                </td>
+            </tr>
+        }
+    </tbody>
+</table>
 
 @code {
     private string _dir = "/";
@@ -150,7 +153,7 @@
         _showPod = false;
         _pod = "";
         _pods = new List<string>();
-        
+
         _showContainer = false;
         _container = "";
         _containers = new List<string>();
@@ -159,7 +162,7 @@
         _files = new List<FileItem>();
 
         _showButtons = false;
-        
+
         _cluster = e.Value.ToString();
         if (!string.IsNullOrWhiteSpace(_cluster))
         {
@@ -173,7 +176,7 @@
         _showPod = false;
         _pod = "";
         _pods = new List<string>();
-        
+
         _showContainer = false;
         _container = "";
         _containers = new List<string>();
@@ -215,7 +218,7 @@
     {
         _dir = "/";
         _files = new List<FileItem>();
-        
+
         _showButtons = false;
 
         _container = e.Value.ToString();
@@ -223,7 +226,7 @@
         {
             _files = await
             Http.GetFromJsonAsync<List<FileItem>>($"api/files?cluster={_cluster}&namespace={_namespace}&pod={_pod}&container={_container}&dir={_dir}");
-            
+
             _showButtons = true;
         }
     }
@@ -259,7 +262,7 @@
     }
 
     // https://docs.microsoft.com/en-us/aspnet/core/blazor/file-uploads?view=aspnetcore-5.0&pivots=server
-    protected async Task Upload(InputFileChangeEventArgs e) 
+    protected async Task Upload(InputFileChangeEventArgs e)
     {
         var file = e.File;
         using var content = new MultipartFormDataContent();

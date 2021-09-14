@@ -38,7 +38,6 @@ namespace Kubernetes.FileSystem.Controllers
                 {
                     _clusters = JsonConvert.DeserializeObject<List<Cluster>>(json);
                 }
-
             }
         }
 

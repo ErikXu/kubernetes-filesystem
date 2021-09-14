@@ -34,7 +34,7 @@ namespace Kubernetes.FileSystem.Controllers
 
             var buff = new byte[4096];
             var stream = demux.GetStream(1, 1);
-            var read = stream.Read(buff, 0, 4096);
+            stream.Read(buff, 0, 4096);
             var bytes = TrimEnd(buff);
             var text = System.Text.Encoding.Default.GetString(bytes).Trim();
 
