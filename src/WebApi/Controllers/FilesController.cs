@@ -25,18 +25,54 @@ namespace Kubernetes.FileSystem.Controllers
                 return BadRequest(new { Message = "Cluster is not existed!" });
             }
 
-            var config = KubernetesClientConfiguration.BuildConfigFromConfigFile(configPath);
-            var client = new k8s.Kubernetes(config);
+            var command = $"kubectl version --short --kubeconfig {configPath}";
 
-            var webSocket = await client.WebSocketNamespacedPodExecAsync(pod, @namespace, new string[] { "ls", "-Alh", "--time-style", "long-iso", dir }, container).ConfigureAwait(false);
-            var demux = new StreamDemuxer(webSocket);
-            demux.Start();
+            var (code, message) = ExecuteCommand(command);
 
-            var buff = new byte[4096];
-            var stream = demux.GetStream(1, 1);
-            stream.Read(buff, 0, 4096);
-            var bytes = TrimEnd(buff);
-            var text = System.Text.Encoding.Default.GetString(bytes).Trim();
+            if (code != 0)
+            {
+                return StatusCode(StatusCodes.Status500InternalServerError, new { Message = message });
+            }
+
+            var lines = message.Split(Environment.NewLine);
+
+            var version = new ClusterVersion
+            {
+                Client = lines[0].Replace("Client Version:", string.Empty).Trim(),
+                Server = lines[1].Replace("Server Version:", string.Empty).Trim()
+            };
+
+            version.ClientNum = double.Parse(version.Client.Substring(1, 4));
+            version.ServerNum = double.Parse(version.Server.Substring(1, 4));
+
+            var text = string.Empty;
+            if (version.ClientNum >= 1.2 && version.ServerNum >= 1.2)
+            {
+                command = $"kubectl debug -it {pod} -n {@namespace} --image=centos --target={container} --kubeconfig {configPath} -- sh -c 'ls -Alh --time-style long-iso {dir}'";
+                (code, message) = ExecuteCommand(command);
+
+                if (code != 0)
+                {
+                    return StatusCode(StatusCodes.Status500InternalServerError, new { Message = message });
+                }
+
+                text = message;
+            }
+            else
+            {
+                var config = KubernetesClientConfiguration.BuildConfigFromConfigFile(configPath);
+                var client = new k8s.Kubernetes(config);
+
+                var webSocket = await client.WebSocketNamespacedPodExecAsync(pod, @namespace, new string[] { "ls", "-Alh", "--time-style", "long-iso", dir }, container).ConfigureAwait(false);
+                var demux = new StreamDemuxer(webSocket);
+                demux.Start();
+
+                var buff = new byte[4096];
+                var stream = demux.GetStream(1, 1);
+                stream.Read(buff, 0, 4096);
+                var bytes = TrimEnd(buff);
+                text = System.Text.Encoding.Default.GetString(bytes).Trim();
+            }
 
             var files = ToFiles(text);
             return Ok(files);
@@ -122,7 +158,11 @@ namespace Kubernetes.FileSystem.Controllers
             process.Start();
             process.WaitForExit();
 
-            var message = process.StandardError.ReadToEnd();
+            var message = process.StandardOutput.ReadToEnd();
+            if (process.ExitCode != 0)
+            {
+                message = process.StandardError.ReadToEnd();
+            }
 
             return (process.ExitCode, message);
         }
@@ -144,12 +184,17 @@ namespace Kubernetes.FileSystem.Controllers
 
             foreach (var line in lines)
             {
-                if (line.StartsWith("total"))
+                if (line.StartsWith("total") || line.StartsWith("Defaulting"))
                 {
                     continue;
                 }
                 var trimLine = line.Trim();
                 var array = trimLine.Split(" ").ToList().Where(n => !string.IsNullOrWhiteSpace(n)).ToList();
+
+                if (array.Count < typeof(FileItem).GetProperties().Count())
+                {
+                    continue;
+                }
 
                 var file = new FileItem
                 {
